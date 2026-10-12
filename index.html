@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070a12">
+<title>Handlink</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<main id="app">
+
+  <!-- ========== 1. ROLE SELECTION ========== -->
+  <section id="screen-role" class="screen active">
+    <div class="role-wrap">
+      <h1 class="brand">Handlink</h1>
+      <p class="lede">Control a screen with your bare hand. One device watches your hand, the other shows the result.</p>
+
+      <button class="glass role-card" id="btnPlayer" type="button">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 27V12a3 3 0 0 1 6 0v10m0-4a3 3 0 0 1 6 0v6m0-3a3 3 0 0 1 6 0v9c0 7-5 12-12 12-6 0-9-3-12-8l-3-6a3 3 0 0 1 5-3l3 4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="role-text">
+          <strong>PLAYER (Camera/Tracker)</strong>
+          <small>Tracks your hand and gives you a connection code</small>
+        </span>
+      </button>
+
+      <button class="glass role-card" id="btnViewer" type="button">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5 41 14.500v19L24 43 7 33.500v-19L24 5Zm0 18.500 17-9M24 23.500l-17-9M24 23.500V43" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="role-text">
+          <strong>VIEWER (3D Canvas)</strong>
+          <small>Enter the code to see the 3D cursor and play the game</small>
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ========== 2. PLAYER (HAND TRACKER) ========== -->
+  <section id="screen-player" class="screen">
+    <div class="feed" id="playerFeed">
+      <video id="playerVideo" playsinline muted autoplay></video>
+      <canvas id="playerOverlay"></canvas>
+    </div>
+
+    <div class="player-top glass">
+      <div class="code-label">Connection code</div>
+      <div class="code" id="playerCode" aria-live="polite">······</div>
+      <div class="status"><i class="dot" id="playerDot"></i><span id="playerStatus">Starting…</span></div>
+    </div>
+
+    <div class="bar">
+      <div class="glass chip"><span id="playerFps">0</span> fps</div>
+      <div class="glass chip readout" id="playerReadout">no hand</div>
+      <div class="glass chip pinch-pill" id="playerPinch"><i class="dot"></i>Pinch</div>
+      <button class="glass btn" id="btnFlip" type="button">Flip camera</button>
+      <button class="glass btn" id="btnLeavePlayer" type="button">Leave</button>
+    </div>
+  </section>
+
+  <!-- ========== 3. VIEWER (3D AR DISPLAY) ========== -->
+  <section id="screen-viewer" class="screen">
+
+    <!-- 3a. Enter the code -->
+    <div class="connect-wrap" id="viewerConnect">
+      <div class="glass connect-card">
+        <h2>Enter the player's code</h2>
+        <p class="muted">It is shown on the Player device.</p>
+        <input id="codeInput" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="000000" aria-label="Connection code">
+        <button class="btn primary" id="btnConnect" type="button">Connect</button>
+        <div class="status"><i class="dot" id="viewerDot"></i><span id="viewerStatus">Not connected</span></div>
+        <button class="link" id="btnLeaveViewer" type="button">Back</button>
+      </div>
+    </div>
+
+    <!-- 3b. Stage (shown after connecting)
+         Layer order: camera backdrop -> game iframe -> three.js canvas -> your overlays -> HUD -->
+    <div class="stage" id="viewerStage" hidden>
+      <video id="viewerVideo" playsinline muted autoplay hidden></video>
+
+      <!-- Your game lives here. Set CONFIG.GAME_URL in app.js (empty string = plain AR template). -->
+      <iframe id="gameFrame" title="Game" hidden></iframe>
+
+      <canvas id="threeCanvas"></canvas>
+
+      <!-- >>> CUSTOM UI OVERLAYS: put your own HTML (score, menus, labels) inside this div.
+           It sits above the 3D canvas and ignores pointer events by default. -->
+      <div id="overlaySlot"></div>
+
+      <div class="bar viewer-bar">
+        <div class="glass chip"><i class="dot ok"></i><span id="viewerHz">0</span> Hz</div>
+        <div class="glass chip pinch-pill" id="viewerPinch"><i class="dot"></i>Pinch</div>
+        <button class="glass btn" id="btnCamBg" type="button" hidden>Camera background</button>
+        <button class="glass btn" id="btnDisconnect" type="button">Disconnect</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- CDN dependencies (no build step, no backend) -->
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
