@@ -23,6 +23,13 @@ const CONFIG = {
   // Set to '' to run the plain AR template (camera backdrop + 3D cursor + demo cube).
   GAME_URL: '/ym/',
 
+  // TVs often report a small CSS viewport (e.g. 960x540), so a game designed for a phone/desktop
+  // overflows and its START button ends up off-screen. The game is rendered at least this big and
+  // scaled down to fit. Lower the MIN values to zoom in, raise them to zoom out.
+  // You can also test live with ?scale=0.6 on the Viewer URL (forces a fixed scale).
+  GAME_MIN_WIDTH: 900,
+  GAME_MIN_HEIGHT: 820,
+
   // How hand events are sent into the game: 'auto' (pointer + mouse), 'pointer', 'mouse' or 'touch'.
   GAME_INPUT: 'auto',
   // Pinch-and-release without moving more than this many px counts as a click on buttons/labels.
@@ -518,19 +525,37 @@ const Demo = {
    pinch = press, move while pinched = drag, release = let go. A short pinch on a button = click.
    The game needs no changes. */
 const GameBridge = {
-  frame: null, target: null, isDown: false, start: null, moved: 0, mounted: false,
+  frame: null, target: null, isDown: false, start: null, moved: 0, mounted: false, scale: 1,
+
+  // Render the game in a virtual viewport at least GAME_MIN_WIDTH x GAME_MIN_HEIGHT and shrink it
+  // to fit the screen, so nothing is cut off on small-viewport TVs.
+  applyScale() {
+    if (!this.frame) return;
+    const forced = parseFloat(new URLSearchParams(location.search).get('scale'));
+    let k = forced > 0 ? forced
+      : Math.min(1, innerWidth / CONFIG.GAME_MIN_WIDTH, innerHeight / CONFIG.GAME_MIN_HEIGHT);
+    this.scale = clamp(k, 0.3, 1);
+    const f = this.frame.style;
+    if (this.scale === 1) { f.width = f.height = f.transform = f.transformOrigin = ''; return; }
+    f.width = (100 / this.scale) + '%';
+    f.height = (100 / this.scale) + '%';
+    f.transformOrigin = '0 0';
+    f.transform = 'scale(' + this.scale + ')';
+  },
 
   mount() {
     if (!HAS_GAME || this.mounted) return;
     this.frame = $('gameFrame');
     this.frame.hidden = false;
     this.frame.addEventListener('load', () => this.patchFrame());
+    this.applyScale();
     this.frame.src = CONFIG.GAME_URL;
     this.mounted = true;
   },
   unmount() {
     if (!this.mounted) return;
     this.frame.removeAttribute('src'); this.frame.hidden = true;
+    this.scale = 1; this.frame.removeAttribute('style');
     this.mounted = false; this.isDown = false;
   },
   // Games often call canvas.setPointerCapture(e.pointerId). That throws for synthetic events
@@ -547,6 +572,7 @@ const GameBridge = {
   doc() { try { return this.frame.contentDocument; } catch (e) { return null; } },
 
   down(x, y) {
+    x /= this.scale; y /= this.scale;            // screen px -> game px
     const doc = this.doc(); if (!doc) return;
     this.target = doc.elementFromPoint(x, y) || doc.body;
     this.isDown = true; this.start = { x, y }; this.moved = 0;
@@ -554,11 +580,13 @@ const GameBridge = {
   },
   move(x, y) {
     if (!this.isDown) return;
+    x /= this.scale; y /= this.scale;
     this.moved = Math.max(this.moved, Math.hypot(x - this.start.x, y - this.start.y));
     this.fire('move', x, y);
   },
   up(x, y) {
     if (!this.isDown) return;
+    x /= this.scale; y /= this.scale;
     this.fire('up', x, y);
     this.isDown = false;
     if (this.moved < CONFIG.CLICK_MOVE_TOLERANCE_PX && this.target && this.target.closest) {
@@ -668,6 +696,8 @@ function submitCode() {
 }
 $('btnConnect').addEventListener('click', submitCode);
 $('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitCode(); });
+
+window.addEventListener('resize', () => GameBridge.applyScale());
 
 window.addEventListener('beforeunload', () => { closeViewerPeer(); if (player.peer) player.peer.destroy(); });
 })();
