@@ -18,9 +18,10 @@
 /* ======================= 0. CONFIG ======================= */
 const CONFIG = {
   // Path to the game that should appear on the Viewer after connecting.
-  // Must be on the SAME origin (e.g. game.html in the same GitHub Pages repo).
+  // Must be on the SAME origin. On GitHub Pages, all repos under ymgenv.github.io share one origin,
+  // so '/ym/' works as long as Handlink is also hosted on ymgenv.github.io.
   // Set to '' to run the plain AR template (camera backdrop + 3D cursor + demo cube).
-  GAME_URL: './game.html',
+  GAME_URL: '/ym/',
 
   // How hand events are sent into the game: 'auto' (pointer + mouse), 'pointer', 'mouse' or 'touch'.
   GAME_INPUT: 'auto',
